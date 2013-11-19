@@ -47,6 +47,15 @@ uint8_t payload[] = { 0 };
 XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x406A3A0A);
 
 
+// Set DIO0 (pin 20) to Analog Input
+uint8_t d0Cmd[] = { 'D', '0' };
+uint8_t d0Value[] = { 0x4 };
+
+// Create a remote AT request with the IR command
+//RemoteAtCommandRequest remoteAtRequest = RemoteAtCommandRequest(remoteAddress, d0Cmd, d0Value, sizeof(d0Value));
+
+
+
 #ifdef S1
 TxStatusResponse txStatus = TxStatusResponse();
 #endif
@@ -83,8 +92,12 @@ void loop() {
   if(lastState != inputstate){
     lastState = inputstate;
     
-    payload[0] = inputstate & 0xff;
-    sendPayload(payload, 1);
+    d0Value[0] = (inputstate == LOW? 0x04: 0x05);
+    
+    sendATCommand(d0Cmd, d0Value, sizeof(d0Value));
+    
+    //payload[0] = inputstate & 0xff;
+    //sendPayload(payload, 1);
     //digitalWrite(13, inputstate);
   }
   
@@ -94,6 +107,43 @@ void loop() {
   //while (1) {};
 }
 
+
+void sendATCommand(uint8_t *cmd, uint8_t *payload, int sizeOfPayload){
+
+  // Create a remote AT request with the IR command
+  RemoteAtCommandRequest remoteAtRequest = RemoteAtCommandRequest(addr64, cmd, payload, sizeOfPayload);
+  // Create a Remote AT response object
+  RemoteAtCommandResponse remoteAtResponse = RemoteAtCommandResponse();
+  
+  xbee.send(remoteAtRequest);
+  
+   // wait up to 5 seconds for the status response
+  if (xbee.readPacket(5000)) {
+    // got a response!
+
+    // should be an AT command response
+    if (xbee.getResponse().getApiId() == REMOTE_AT_COMMAND_RESPONSE) {
+      xbee.getResponse().getRemoteAtCommandResponse(remoteAtResponse);
+
+      if (remoteAtResponse.isOk()) {
+        flashLed(13, 5, 50);
+        if (remoteAtResponse.getValueLength() > 0) {
+          
+          for (int i = 0; i < remoteAtResponse.getValueLength(); i++) {
+            // Read responses
+          }
+        }
+      } else {
+      }
+    } else {
+    }    
+  } else if (xbee.getResponse().isError()) {
+    //nss.print("Error reading packet.  Error code: ");  
+    //nss.println(xbee.getResponse().getErrorCode());
+  } else {
+    //nss.print("No response from radio");  
+  }
+}
 
 
 
