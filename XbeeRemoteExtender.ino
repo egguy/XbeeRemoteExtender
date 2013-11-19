@@ -1,7 +1,37 @@
 #include <XBee.h>
 
-//#define S1 1
-#define S2 1
+#define S1 1
+//#define S2 1
+
+// portability macro
+#ifdef S1
+#define STATUS_RESPONSE TX_STATUS_RESPONSE
+#endif
+#ifdef S2
+#define STATUS_RESPONSE ZB_TX_STATUS_RESPONSE
+#endif
+
+#ifdef S1
+#define request(addr64, payload, sizeofPayload) Tx64Request tx = Tx64Request(addr64, payload, sizeofPayload)
+#endif
+#ifdef S2
+#define request(addr64, payload, sizeofPayload) ZBTxRequest tx = ZBTxRequest(addr64, payload, sizeofPayload)
+#endif
+
+#ifdef S1
+#define getStatus() txStatus.getStatus()
+#endif
+#ifdef S2
+#define getStatus() txStatus.getDeliveryStatus()
+#endif
+
+#ifdef S1
+#define TXStatusResponse(txStatus) xbee.getResponse().getTxStatusResponse(txStatus)
+#endif
+#ifdef S2
+#define TXStatusResponse(txStatus)  xbee.getResponse().getZBTxStatusResponse(txStatus)
+#endif
+
 
 volatile int inputstate = LOW;
 //volatile boolean updated = false; 
@@ -70,13 +100,7 @@ void loop() {
 
 void sendPayload(uint8_t *payload, int sizeofPayload){
   
-  #ifdef S1
-  Tx64Request tx = Tx64Request(addr64, payload, sizeofPayload);
-  #endif
-  #ifdef S2
-  ZBTxRequest tx = ZBTxRequest(addr64, payload, sizeofPayload);
-  #endif
-
+  request(addr64, payload, sizeofPayload);
   
   xbee.send(tx);
 
@@ -88,12 +112,13 @@ void sendPayload(uint8_t *payload, int sizeofPayload){
   if (xbee.readPacket(500)) {
     // got a response!
 
-    // should be a znet tx status            	
-    if (xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
-      xbee.getResponse().getZBTxStatusResponse(txStatus);
-
+    // should be a znet tx status    	
+    if (xbee.getResponse().getApiId() == STATUS_RESPONSE) {
+      TXStatusResponse(txStatus);
+    
       // get the delivery status, the fifth byte
-      if (txStatus.getDeliveryStatus() == SUCCESS) {
+
+      if (getStatus() == SUCCESS) {
         Serial.println("Success");
         // success.  time to celebrate
         flashLed(13, 5, 50);
