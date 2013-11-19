@@ -6,32 +6,17 @@
 // portability macro
 #ifdef S1
 #define STATUS_RESPONSE TX_STATUS_RESPONSE
-#endif
-#ifdef S2
-#define STATUS_RESPONSE ZB_TX_STATUS_RESPONSE
-#endif
-
-#ifdef S1
 #define request(addr64, payload, sizeofPayload) Tx64Request tx = Tx64Request(addr64, payload, sizeofPayload)
-#endif
-#ifdef S2
-#define request(addr64, payload, sizeofPayload) ZBTxRequest tx = ZBTxRequest(addr64, payload, sizeofPayload)
-#endif
-
-#ifdef S1
 #define getStatus() txStatus.getStatus()
-#endif
-#ifdef S2
-#define getStatus() txStatus.getDeliveryStatus()
-#endif
-
-#ifdef S1
 #define TXStatusResponse(txStatus) xbee.getResponse().getTxStatusResponse(txStatus)
 #endif
+
 #ifdef S2
+#define STATUS_RESPONSE ZB_TX_STATUS_RESPONSE
+#define request(addr64, payload, sizeofPayload) ZBTxRequest tx = ZBTxRequest(addr64, payload, sizeofPayload)
+#define getStatus() txStatus.getDeliveryStatus()
 #define TXStatusResponse(txStatus)  xbee.getResponse().getZBTxStatusResponse(txStatus)
 #endif
-
 
 volatile int inputstate = LOW;
 //volatile boolean updated = false; 
