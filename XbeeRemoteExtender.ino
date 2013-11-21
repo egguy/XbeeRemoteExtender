@@ -1,7 +1,9 @@
 #include <XBee.h>
 
-#define S1 1
-//#define S2 1
+//#define S1 1
+#define S2 1
+#define IN1 2
+#define IN2 3
 
 // portability macro
 #ifdef S1
@@ -18,7 +20,8 @@
 #define TXStatusResponse(txStatus)  xbee.getResponse().getZBTxStatusResponse(txStatus)
 #endif
 
-volatile int inputstate = LOW;
+//volatile 
+int inputstate = LOW;
 //volatile boolean updated = false; 
 int lastState = LOW;
 
@@ -29,12 +32,12 @@ uint8_t payload[] = { 0 };
 
 // address of the door opener
 // SH + SL Address of receiving XBee
-XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x406A3A0A);
+XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x40A0A3F3);
 
 
 // Set DIO0 (pin 20) to Analog Input
-uint8_t d0Cmd[] = { 'D', '0' };
-uint8_t d0Value[] = { 0x4 };
+//uint8_t d0Cmd[] = { 'D', '0' };
+//uint8_t d0Value[] = { 0x4 };
 
 // Create a remote AT request with the IR command
 //RemoteAtCommandRequest remoteAtRequest = RemoteAtCommandRequest(remoteAddress, d0Cmd, d0Value, sizeof(d0Value));
@@ -53,15 +56,18 @@ ZBTxStatusResponse txStatus = ZBTxStatusResponse();
 
 int statusLed = 11;
 int errorLed = 12;
+int b1_state = HIGH;
+int b2_state = HIGH;
 
 void setup(){
   Serial.begin(9600);
   //xbee.begin(Serial);
   //delay(5000);
   pinMode(13, OUTPUT);
-  pinMode(2, INPUT_PULLUP);
+  pinMode(IN1, INPUT_PULLUP);
+  pinMode(IN2, INPUT_PULLUP);
   //digitalWrite(2, HIGH);
-  attachInterrupt(0, stateChange, CHANGE);
+  //attachInterrupt(0, stateChange, CHANGE);
 }
 
 void loop() {
@@ -73,18 +79,35 @@ void loop() {
     //Serial.println(inputstate);
     //delay(100);
 
+  inputstate = digitalRead(IN1);
+  if(inputstate == LOW && b1_state == HIGH){
+    payload[0] = 0x01;
+    sendPayload(payload, 1);
+    b1_state = LOW;
+  } else if(inputstate == HIGH  && b1_state == LOW){ 
+    b1_state = HIGH; 
+  }
 
-  if(lastState != inputstate){
+  inputstate = digitalRead(IN2);
+  if(inputstate == LOW && b2_state == HIGH){
+    payload[0] =  0x02;
+    sendPayload(payload, 1);
+    b2_state = LOW;
+  } else if(inputstate == HIGH  && b2_state == LOW){ 
+    b2_state = HIGH; 
+  }
+
+  /*if(lastState != inputstate){
     lastState = inputstate;
     
-    d0Value[0] = (inputstate == LOW? 0x04: 0x05);
+    //d0Value[0] = (inputstate == LOW? 0x04: 0x05);
     
-    sendATCommand(d0Cmd, d0Value, sizeof(d0Value));
+    //sendATCommand(d0Cmd, d0Value, sizeof(d0Value));
     
-    //payload[0] = inputstate & 0xff;
-    //sendPayload(payload, 1);
+    payload[0] = inputstate & 0xff;
+    sendPayload(payload, 1);
     //digitalWrite(13, inputstate);
-  }
+  }*/
   
 
 
@@ -185,6 +208,7 @@ void flashLed(int pin, int times, int wait) {
       }
     }
 }
+
 
 void stateChange(){
   //Serial.println("Intterupted");
